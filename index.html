@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SpeedTest Pro</title>
+  <style>
+    /* --- 核心变量 --- */
+    :root {
+      --bg: #0c1220;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --fg: #e8edf5;
+      --muted: #64748b;
+      --accent: #00d4aa;
+      --accent-dim: rgba(0, 212, 170, 0.15);
+      --upload: #ff6b35;
+      --upload-dim: rgba(255, 107, 53, 0.15);
+      --border: rgba(100, 116, 139, 0.25);
+      --glow-accent: rgba(0, 212, 170, 0.5);
+      --glow-upload: rgba(255, 107, 53, 0.5);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .page-wrapper {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 212, 170, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 170, 0.04) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-glow {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.2;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glow-1 {
+      width: 500px;
+      height: 500px;
+      top: -150px;
+      left: -150px;
+      background: var(--accent);
+    }
+
+    .glow-2 {
+      width: 400px;
+      height: 400px;
+      bottom: -100px;
+      right: -100px;
+      background: var(--upload);
+    }
+
+    /* --- 头部布局 --- */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      gap: 10px;
+    }
+
+    @media (min-width: 768px) {
+      header {
+        padding: 1.5rem 2rem;
+      }
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #00d4aa, #00a080);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-icon svg {
+      width: 16px;
+      height: 16px;
+      stroke: #0c1220;
+      stroke-width: 2.5;
+      fill: none;
+    }
+
+    .logo-text {
+      display: none;
+      font-family: "SF Mono", "Courier New", Courier, monospace;
+      font-weight: 700;
+      font-size: 1.125rem;
+      letter-spacing: 0.05em;
+    }
+
+    @media (min-width: 640px) {
+      .logo-text {
+        display: block;
+      }
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .traffic-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px 12px;
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 85px;
+      justify-content: center;
+    }
+
+    .traffic-text {
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: none;
+    }
+
+    @media (min-width: 480px) {
+      .traffic-text {
+        display: inline;
+      }
+    }
+
+    .traffic-value {
+      font-family: "SF Mono", "Courier New", Courier, monospace;
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-align: right;
+    }
+
+    .traffic-unit {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-left: 2px;
+    }
+
+    .lang-switch {
+      display: flex;
+      gap: 2px;
+      padding: 3px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+    }
+
+    .lang-btn {
+      padding: 4px 10px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .lang-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .lang-btn:hover:not(.active) {
+      color: var(--fg);
+    }
+
+    /* --- 主内容区域 --- */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      main {
+        padding: 1.5rem 2rem;
+        gap: 2rem;
+      }
+    }
+
+    /* --- 仪表盘区域 --- */
+    .gauges-section {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    @media (min-width: 480px) {
+      .gauges-section {
+        gap: 1.5rem;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .gauges-section {
+        gap: 3rem;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .gauges-section {
+        gap: 5rem;
+      }
+    }
+
+    .gauge-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .gauge-wrap {
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
+
+    @media (min-width: 360px) {
+      .gauge-wrap {
+        width: 140px;
+        height: 140px;
+      }
+    }
+
+    @media (min-width: 480px) {
+      .gauge-wrap {
+        width: 180px;
+        height: 180px;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .gauge-wrap {
+        width: 240px;
+        height: 240px;
+      }
+    }
+
+    .gauge-canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .gauge-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      width: 100%;
+    }
+
+    .gauge-value {
+      font-family: "SF Mono", "Courier New", Courier, monospace;
+      font-weight: 900;
+      font-size: 1.4rem;
+    }
+
+    @media (min-width: 360px) {
+      .gauge-value {
+        font-size: 1.6rem;
+      }
+    }
+
+    @media (min-width: 480px) {
+      .gauge-value {
+        font-size: 2.25rem;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .gauge-value {
+        font-size: 2.5rem;
+      }
+    }
+
+    .gauge-unit-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    @media (min-width: 480px) {
+      .gauge-unit-label {
+        font-size: 0.75rem;
+      }
+    }
+
+    .gauge-label-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+    }
+
+    @media (min-width: 480px) {
+      .gauge-label-row {
+        font-size: 0.875rem;
+      }
+    }
+
+    .gauge-label-row svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .dl-color {
+      color: var(--accent);
+    }
+
+    .ul-color {
+      color: var(--upload);
+    }
+
+    .stroke-dl {
+      stroke: var(--accent);
+    }
+
+    .stroke-ul {
+      stroke: var(--upload);
+    }
+
+    /* --- 图表区域 --- */
+    .charts-section {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    @media (min-width: 768px) {
+      .charts-section {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+      }
+    }
+
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      backdrop-filter: blur(12px);
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .chart-title {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .chart-avg {
+      font-size: 0.75rem;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 100px;
+    }
+
+    @media (min-width: 768px) {
+      .chart-canvas {
+        height: 150px;
+      }
+    }
+
+    /* --- 按钮区域 --- */
+    .buttons-section {
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: center;
+      align-items: stretch;
+      gap: 0.5rem;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    @media (min-width: 480px) {
+      .buttons-section {
+        gap: 0.75rem;
+      }
+    }
+
+    .action-btn {
+      position: relative;
+      flex: 1;
+      padding: 10px 4px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-card);
+      color: var(--fg);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      overflow: hidden;
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    @media (min-width: 360px) {
+      .action-btn {
+        font-size: 0.8rem;
+        padding: 12px 6px;
+      }
+    }
+
+    @media (min-width: 480px) {
+      .action-btn {
+        padding: 14px 20px;
+        font-size: 0.875rem;
+      }
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .action-btn:active {
+      transform: translateY(0);
+    }
+
+    .action-btn.download:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 25px var(--glow-accent);
+    }
+
+    .action-btn.download.active {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .action-btn.upload:hover {
+      border-color: var(--upload);
+      box-shadow: 0 0 25px var(--glow-upload);
+    }
+
+    .action-btn.upload.active {
+      border-color: var(--upload);
+      background: var(--upload-dim);
+    }
+
+    .action-btn.dual:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 25px rgba(0, 212, 170, 0.3), 0 0 25px rgba(255, 107, 53, 0.3);
+    }
+
+    .action-btn.dual.active {
+      background: linear-gradient(135deg, var(--accent-dim), var(--upload-dim));
+      border-color: var(--accent);
+    }
+
+    .btn-icon {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    @media (min-width: 480px) {
+      .btn-icon {
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    /* --- 状态指示 --- */
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .status-indicator.active {
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+      animation: statusPulse 1.2s ease-in-out infinite;
+    }
+
+    .status-text {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes statusPulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+      }
+    }
+
+    .anim-in {
+      animation: fadeUp 0.5s ease forwards;
+      opacity: 0;
+    }
+
+    .anim-delay-1 {
+      animation-delay: 0.1s;
+    }
+
+    .anim-delay-2 {
+      animation-delay: 0.2s;
+    }
+
+    .anim-delay-3 {
+      animation-delay: 0.3s;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+
+  <div class="page-wrapper">
+    <header class="anim-in">
+      <div class="logo-group">
+        <div class="logo-icon"><svg viewBox="0 0 24 24">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg></div>
+        <span class="logo-text">SpeedTest</span>
+      </div>
+      <div class="header-right">
+        <div class="traffic-card">
+          <div class="status-indicator" id="statusDot"></div>
+          <span class="traffic-text" data-i18n="traffic">流量消耗</span>
+          <div class="traffic-value"><span id="totalTraffic">0.00</span><span class="traffic-unit">MB</span></div>
+        </div>
+        <div class="lang-switch">
+          <button class="lang-btn active" data-lang="zh">中文</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="gauges-section anim-in anim-delay-1">
+        <div class="gauge-unit">
+          <div class="gauge-wrap">
+            <canvas id="downloadGauge" class="gauge-canvas"></canvas>
+            <div class="gauge-center">
+              <div class="gauge-value" id="downloadValue">0</div>
+              <div class="gauge-unit-label">Mbps</div>
+            </div>
+          </div>
+          <div class="gauge-label-row dl-color">
+            <svg viewBox="0 0 24 24" class="stroke-dl">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span data-i18n="download">下载</span>
+          </div>
+        </div>
+        <div class="gauge-unit">
+          <div class="gauge-wrap">
+            <canvas id="uploadGauge" class="gauge-canvas"></canvas>
+            <div class="gauge-center">
+              <div class="gauge-value" id="uploadValue">0</div>
+              <div class="gauge-unit-label">Mbps</div>
+            </div>
+          </div>
+          <div class="gauge-label-row ul-color">
+            <svg viewBox="0 0 24 24" class="stroke-ul">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span data-i18n="upload">上传</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-section anim-in anim-delay-2">
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title" data-i18n="downloadChart">下载速度曲线</span>
+            <span class="chart-avg dl-color" id="downloadAvg">Avg: 0 Mbps</span>
+          </div>
+          <canvas id="downloadChart" class="chart-canvas"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title" data-i18n="uploadChart">上传速度曲线</span>
+            <span class="chart-avg ul-color" id="uploadAvg">Avg: 0 Mbps</span>
+          </div>
+          <canvas id="uploadChart" class="chart-canvas"></canvas>
+        </div>
+      </div>
+
+      <div class="buttons-section anim-in anim-delay-3">
+        <button class="action-btn download" id="btnDownload">
+          <svg class="btn-icon" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span data-i18n="downloadBtn">下载测试</span>
+        </button>
+        <button class="action-btn upload" id="btnUpload">
+          <svg class="btn-icon" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span data-i18n="uploadBtn">上传测试</span>
+        </button>
+        <button class="action-btn dual" id="btnBoth">
+          <svg class="btn-icon" viewBox="0 0 24 24">
+            <polyline points="17 1 21 5 17 9" />
+            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+            <polyline points="7 23 3 19 7 15" />
+            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+          </svg>
+          <span data-i18n="bothBtn">双向测试</span>
+        </button>
+      </div>
+      <p class="status-text" id="statusText" data-i18n="ready">准备就绪，点击按钮开始测试</p>
+    </main>
+  </div>
+
+  <script>
+    // 多语言配置
+    const i18n = {
+      zh: { traffic: '流量消耗', download: '下载', upload: '上传', uploadBtn: '上传测试', downloadBtn: '下载测试', bothBtn: '双向测试', downloadChart: '下载速度曲线', uploadChart: '上传速度曲线', ready: '准备就绪，点击按钮开始测试', uploadTesting: '正在测试上传速度...', downloadTesting: '正在测试下载速度...', dualTesting: '正在同时测试上传和下载...', uploadComplete: '上传测试完成', downloadComplete: '下载测试完成', allComplete: '测试全部完成', serverError: '服务器连接失败，请检查服务器是否正常运行', networkError: '网络连接异常，测试已中止' },
+      en: { traffic: 'Data Usage', download: 'Download', upload: 'Upload', uploadBtn: 'Upload Test', downloadBtn: 'Download Test', bothBtn: 'Dual Test', downloadChart: 'Download Speed Curve', uploadChart: 'Upload Speed Curve', ready: 'Ready, click button to start', uploadTesting: 'Testing upload speed...', downloadTesting: 'Testing download speed...', dualTesting: 'Testing upload and download simultaneously...', uploadComplete: 'Upload test completed', downloadComplete: 'Download test completed', allComplete: 'All tests completed', serverError: 'Server connection failed, please check if server is running properly', networkError: 'Network connection error, test aborted' }
+    };
+
+    // 状态变量
+    let currentLang = 'zh'; let isRunning = false; let currentTest = null; let totalTraffic = 0; let errorCount = 0; const maxErrors = 3;
+    let smoothedDownloadSpeed = 0; let smoothedUploadSpeed = 0; let downloadSpeedHistory = []; let uploadSpeedHistory = [];
+    let downloadData = []; let uploadData = []; const maxChartPoints = 300;
+    let downloadSpeed = 0; let uploadSpeed = 0;
+
+    // 全局中止函数收集器 (用于双向测速隔离管理)
+    let currentAborts = [];
+
+    // DOM 元素
+    const downloadCanvas = document.getElementById('downloadGauge'); const uploadCanvas = document.getElementById('uploadGauge');
+    const downloadChartCanvas = document.getElementById('downloadChart'); const uploadChartCanvas = document.getElementById('uploadChart');
+    const downloadValue = document.getElementById('downloadValue'); const uploadValue = document.getElementById('uploadValue');
+    const downloadAvg = document.getElementById('downloadAvg'); const uploadAvg = document.getElementById('uploadAvg');
+    const totalTrafficEl = document.getElementById('totalTraffic'); const statusText = document.getElementById('statusText');
+    const statusDot = document.getElementById('statusDot'); const btnUpload = document.getElementById('btnUpload');
+    const btnDownload = document.getElementById('btnDownload'); const btnBoth = document.getElementById('btnBoth'); const langBtns = document.querySelectorAll('.lang-btn');
+
+    const downloadGaugeCtx = downloadCanvas.getContext('2d'); const uploadGaugeCtx = uploadCanvas.getContext('2d');
+    const downloadChartCtx = downloadChartCanvas.getContext('2d'); const uploadChartCtx = uploadChartCanvas.getContext('2d');
+
+    const SPEEDTEST_SERVERS = [{ name: '本机服务器', server: './', dlURL: 'garbage.php', ulURL: 'empty.php', pingURL: 'empty.php' }];
+    const TEST_CONFIG = { threads: 5, duration: 10000, warmup: 2000, adjust: 1.05, sampleInterval: 100, smoothWindow: 5 };
+
+    function initCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+      [downloadCanvas, uploadCanvas, downloadChartCanvas, uploadChartCanvas].forEach(canvas => {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.max(1, rect.width * dpr); canvas.height = Math.max(1, rect.height * dpr);
+      });
+      [downloadGaugeCtx, uploadGaugeCtx, downloadChartCtx, uploadChartCtx].forEach(ctx => {
+        ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.scale(dpr, dpr);
+      });
+    }
+
+    function drawGauge(ctx, canvas, value, maxValue, color, glowColor) {
+      const rect = canvas.getBoundingClientRect(); const w = rect.width, h = rect.height;
+      const cx = w / 2, cy = h / 2; const radius = Math.max(10, Math.min(cx, cy) - 15); const lineWidth = Math.max(4, radius * 0.12);
+      ctx.clearRect(0, 0, w, h);
+      ctx.beginPath(); ctx.arc(cx, cy, radius, Math.PI * 0.75, Math.PI * 2.25, false); ctx.strokeStyle = 'rgba(100, 116, 139, 0.15)'; ctx.lineWidth = lineWidth; ctx.lineCap = 'round'; ctx.stroke();
+      const progress = Math.min(1, Math.max(0, value / maxValue));
+      if (progress > 0.001) {
+        const endAngle = Math.PI * 0.75 + progress * Math.PI * 1.5;
+        ctx.beginPath(); ctx.arc(cx, cy, radius, Math.PI * 0.75, endAngle, false); ctx.strokeStyle = glowColor; ctx.lineWidth = lineWidth + 6; ctx.lineCap = 'round'; ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, radius, Math.PI * 0.75, endAngle, false); ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.lineCap = 'round'; ctx.stroke();
+      }
+      for (let i = 0; i <= 10; i++) {
+        const angle = Math.PI * 0.75 + (i / 10) * Math.PI * 1.5; const inner = radius - lineWidth / 2 - 6; const outer = radius - lineWidth / 2 - (i % 2 === 0 ? 14 : 10);
+        ctx.beginPath(); ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner); ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
+        ctx.strokeStyle = i % 2 === 0 ? 'rgba(232, 237, 245, 0.25)' : 'rgba(232, 237, 245, 0.1)'; ctx.lineWidth = i % 2 === 0 ? 1.5 : 1; ctx.stroke();
+      }
+    }
+
+    function drawChart(ctx, canvas, data, color, glowColor) {
+      const rect = canvas.getBoundingClientRect(); const w = rect.width, h = rect.height; const padding = { top: 10, right: 10, bottom: 20, left: 10 };
+      const chartW = w - padding.left - padding.right; const chartH = h - padding.top - padding.bottom;
+      ctx.clearRect(0, 0, w, h); ctx.strokeStyle = 'rgba(100, 116, 139, 0.1)'; ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) { const y = padding.top + (chartH / 4) * i; ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(w - padding.right, y); ctx.stroke(); }
+      if (data.length < 2) return;
+      const maxVal = Math.max(...data, 100); const displayData = data.length > maxChartPoints ? data.slice(-maxChartPoints) : data;
+      const xStep = chartW / (displayData.length - 1);
+      const points = displayData.map((v, i) => ({ x: padding.left + i * xStep, y: padding.top + chartH - (v / maxVal) * chartH }));
+      const gradient = ctx.createLinearGradient(0, padding.top, 0, h - padding.bottom); gradient.addColorStop(0, glowColor); gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.moveTo(points[0].x, h - padding.bottom); points.forEach(p => ctx.lineTo(p.x, p.y)); ctx.lineTo(points[points.length - 1].x, h - padding.bottom); ctx.closePath(); ctx.fillStyle = gradient; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y); for (let i = 1; i < points.length; i++) { ctx.lineTo(points[i].x, points[i].y); } ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+      if (points.length > 0) { const last = points[points.length - 1]; ctx.beginPath(); ctx.arc(last.x, last.y, 4, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); ctx.beginPath(); ctx.arc(last.x, last.y, 8, 0, Math.PI * 2); ctx.fillStyle = glowColor; ctx.fill(); }
+    }
+
+    function updateDisplay() {
+      downloadValue.textContent = Math.round(downloadSpeed); uploadValue.textContent = Math.round(uploadSpeed); totalTrafficEl.textContent = totalTraffic.toFixed(2);
+      drawGauge(downloadGaugeCtx, downloadCanvas, downloadSpeed, 1000, '#00d4aa', 'rgba(0, 212, 170, 0.3)'); drawGauge(uploadGaugeCtx, uploadCanvas, uploadSpeed, 500, '#ff6b35', 'rgba(255, 107, 53, 0.3)');
+      drawChart(downloadChartCtx, downloadChartCanvas, downloadData, '#00d4aa', 'rgba(0, 212, 170, 0.2)'); drawChart(uploadChartCtx, uploadChartCanvas, uploadData, '#ff6b35', 'rgba(255, 107, 53, 0.2)');
+      if (downloadData.length > 0) { const validData = downloadData.length > 10 ? downloadData.slice(Math.floor(downloadData.length * 0.2)) : downloadData; const avgDown = validData.reduce((a, b) => a + b, 0) / validData.length; downloadAvg.textContent = `Avg: ${Math.round(avgDown)} Mbps`; } else { downloadAvg.textContent = 'Avg: 0 Mbps'; }
+      if (uploadData.length > 0) { const validData = uploadData.length > 10 ? uploadData.slice(Math.floor(uploadData.length * 0.2)) : uploadData; const avgUp = validData.reduce((a, b) => a + b, 0) / validData.length; uploadAvg.textContent = `Avg: ${Math.round(avgUp)} Mbps`; } else { uploadAvg.textContent = 'Avg: 0 Mbps'; }
+    }
+
+    function resetTestData() { downloadSpeed = 0; uploadSpeed = 0; smoothedDownloadSpeed = 0; smoothedUploadSpeed = 0; downloadSpeedHistory = []; uploadSpeedHistory = []; downloadData = []; uploadData = []; updateDisplay(); }
+    function smoothSpeed(type, newSpeed) { const history = type === 'download' ? downloadSpeedHistory : uploadSpeedHistory; history.push(newSpeed); if (history.length > TEST_CONFIG.smoothWindow) history.shift(); const smoothed = history.length > 0 ? history.reduce((a, b) => a + b, 0) / history.length : newSpeed; if (type === 'download') { smoothedDownloadSpeed = smoothed; downloadSpeed = smoothed; } else { smoothedUploadSpeed = smoothed; uploadSpeed = smoothed; } return smoothed; }
+    function addChartData(type, value) { if (type === 'download') { downloadData.push(value); if (downloadData.length > maxChartPoints) downloadData.shift(); } else { uploadData.push(value); if (uploadData.length > maxChartPoints) uploadData.shift(); } }
+
+    function calculateTrimmedMean(arr) {
+      if (arr.length === 0) return 0;
+      arr.sort((a, b) => a - b);
+      const trimCount = Math.floor(arr.length * 0.1);
+      const validArr = arr.slice(trimCount, arr.length - trimCount);
+      if (validArr.length === 0) return arr[Math.floor(arr.length / 2)];
+      return validArr.reduce((a, b) => a + b, 0) / validArr.length;
+    }
+
+    function runDownloadTest(server, onProgress, onComplete) {
+      const url = server.server + server.dlURL;
+      let totalLoaded = 0, prevLoaded = 0, startTime = performance.now(), prevTime = startTime;
+      const samples = []; let dynamicChunkSize = 8;
+
+      // 隔离局部的状态和请求管理
+      let localTesters = [];
+      let localTimers = [];
+      let isAborted = false;
+
+      function forceAbortLocal() {
+        isAborted = true;
+        localTimers.forEach(timer => clearInterval(timer));
+        localTimers = [];
+        localTesters.forEach(t => {
+          if (t) {
+            t.onload = null; t.onerror = null; t.onprogress = null;
+            if (t.upload) t.upload.onprogress = null;
+            if (t.readyState !== 4) t.abort();
+          }
+        });
+        localTesters = [];
+      }
+      currentAborts.push(forceAbortLocal); // 注册到全局以便统一强杀
+
+      function createDlThread(idx) {
+        if (isAborted) return null;
+        const xhr = new XMLHttpRequest(); let lastLoaded = 0;
+        localTesters.push(xhr);
+        xhr.onprogress = function (e) { const newLoaded = e.loaded - lastLoaded; totalLoaded += newLoaded; totalTraffic += newLoaded / 1048576; lastLoaded = e.loaded; };
+        xhr.onload = function () {
+          if (isAborted) return;
+          if (xhr.status === 200) {
+            lastLoaded = 0;
+            xhr.open('GET', url + '?cors=true&ckSize=' + dynamicChunkSize + '&n=' + Math.random(), true);
+            xhr.responseType = 'arraybuffer';
+            xhr.send();
+          } else { handleRequestError(xhr, idx); }
+        };
+        xhr.onerror = function () { handleRequestError(xhr, idx); };
+        function handleRequestError(xhrRef, errIdx) {
+          if (isAborted) return;
+          errorCount++;
+          if (errorCount >= maxErrors) { statusText.textContent = i18n[currentLang].serverError; stopTest(); return; }
+          setTimeout(() => {
+            if (isAborted) return;
+            const i = localTesters.indexOf(xhrRef);
+            if (i !== -1) localTesters[i] = createDlThread(errIdx);
+          }, 500);
+        }
+        xhr.open('GET', url + '?cors=true&ckSize=' + dynamicChunkSize + '&n=' + Math.random(), true);
+        xhr.responseType = 'arraybuffer'; xhr.send();
+        return xhr;
+      }
+
+      for (let i = 0; i < TEST_CONFIG.threads; i++) { createDlThread(i); }
+
+      const timer = setInterval(() => {
+        if (isAborted) { clearInterval(timer); return; }
+        const now = performance.now(); const elapsed = now - startTime; const bytesDiff = totalLoaded - prevLoaded; const timeDiff = now - prevTime;
+        if (timeDiff > 0) {
+          let instantSpeed = (bytesDiff / timeDiff) / 125 * TEST_CONFIG.adjust; const smoothedSpeed = smoothSpeed('download', instantSpeed);
+          if (elapsed >= TEST_CONFIG.warmup) { samples.push(instantSpeed); if (instantSpeed > 500) { dynamicChunkSize = 16; } else if (instantSpeed > 200) { dynamicChunkSize = 12; } else { dynamicChunkSize = 8; } }
+          onProgress(smoothedSpeed); addChartData('download', smoothedSpeed);
+        }
+        prevLoaded = totalLoaded; prevTime = now;
+        if (elapsed >= TEST_CONFIG.duration) {
+          forceAbortLocal();
+          const finalSpeed = calculateTrimmedMean(samples); onComplete(finalSpeed);
+        }
+      }, TEST_CONFIG.sampleInterval);
+      localTimers.push(timer);
+    }
+
+    function runUploadTest(server, onProgress, onComplete) {
+      const url = server.server + server.ulURL;
+      const randomData = new Uint32Array(2097152);
+      for (let i = 0; i < randomData.length; i++) randomData[i] = Math.floor(Math.random() * 4294967295);
+      const blob = new Blob([randomData], { type: 'application/octet-stream' });
+      let totalUploaded = 0, prevUploaded = 0, startTime = performance.now(), prevTime = startTime;
+      const samples = [];
+
+      // 隔离局部的状态和请求管理
+      let localTesters = [];
+      let localTimers = [];
+      let isAborted = false;
+
+      function forceAbortLocal() {
+        isAborted = true;
+        localTimers.forEach(timer => clearInterval(timer));
+        localTimers = [];
+        localTesters.forEach(t => {
+          if (t) {
+            t.onload = null; t.onerror = null; t.onprogress = null;
+            if (t.upload) t.upload.onprogress = null;
+            if (t.readyState !== 4) t.abort();
+          }
+        });
+        localTesters = [];
+      }
+      currentAborts.push(forceAbortLocal); // 注册到全局以便统一强杀
+
+      function createUlThread(idx) {
+        if (isAborted) return null;
+        const xhr = new XMLHttpRequest(); let lastUploaded = 0;
+        localTesters.push(xhr);
+        xhr.upload.onprogress = function (e) { const newUploaded = e.loaded - lastUploaded; totalUploaded += newUploaded; totalTraffic += newUploaded / 1048576; lastUploaded = e.loaded; };
+        xhr.onload = function () {
+          if (isAborted) return;
+          if (xhr.status === 200) {
+            lastUploaded = 0;
+            xhr.open('POST', url + '?cors=true&n=' + Math.random(), true);
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+            xhr.send(blob);
+          } else { handleRequestError(xhr, idx); }
+        };
+        xhr.onerror = function () { handleRequestError(xhr, idx); };
+        function handleRequestError(xhrRef, errIdx) {
+          if (isAborted) return;
+          errorCount++;
+          if (errorCount >= maxErrors) { statusText.textContent = i18n[currentLang].serverError; stopTest(); return; }
+          setTimeout(() => {
+            if (isAborted) return;
+            const i = localTesters.indexOf(xhrRef);
+            if (i !== -1) localTesters[i] = createUlThread(errIdx);
+          }, 500);
+        }
+        xhr.open('POST', url + '?cors=true&n=' + Math.random(), true);
+        xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+        xhr.send(blob);
+        return xhr;
+      }
+
+      for (let i = 0; i < TEST_CONFIG.threads; i++) { createUlThread(i); }
+
+      const timer = setInterval(() => {
+        if (isAborted) { clearInterval(timer); return; }
+        const now = performance.now(); const elapsed = now - startTime; const bytesDiff = totalUploaded - prevUploaded; const timeDiff = now - prevTime;
+        if (timeDiff > 0) {
+          let instantSpeed = (bytesDiff / timeDiff) / 125 * TEST_CONFIG.adjust; const smoothedSpeed = smoothSpeed('upload', instantSpeed);
+          if (elapsed >= TEST_CONFIG.warmup) { samples.push(instantSpeed); }
+          onProgress(smoothedSpeed); addChartData('upload', smoothedSpeed);
+        }
+        prevUploaded = totalUploaded; prevTime = now;
+        if (elapsed >= TEST_CONFIG.duration) {
+          forceAbortLocal();
+          const finalSpeed = calculateTrimmedMean(samples); onComplete(finalSpeed);
+        }
+      }, TEST_CONFIG.sampleInterval);
+      localTimers.push(timer);
+    }
+
+    function runSingleTest(type, callback) { const server = SPEEDTEST_SERVERS[0]; if (!server) { alert('未配置测速服务器'); return; } if (type === 'download') { runDownloadTest(server, speed => { downloadSpeed = speed; updateDisplay(); }, finalSpeed => { downloadSpeed = finalSpeed; updateDisplay(); callback(); }); } else if (type === 'upload') { runUploadTest(server, speed => { uploadSpeed = speed; updateDisplay(); }, finalSpeed => { uploadSpeed = finalSpeed; updateDisplay(); callback(); }); } }
+    function runDualTest(callback) { const server = SPEEDTEST_SERVERS[0]; if (!server) return; let dlDone = false, ulDone = false; runDownloadTest(server, speed => { downloadSpeed = speed; updateDisplay(); }, finalSpeed => { downloadSpeed = finalSpeed; dlDone = true; if (dlDone && ulDone) callback(); }); runUploadTest(server, speed => { uploadSpeed = speed; updateDisplay(); }, finalSpeed => { uploadSpeed = finalSpeed; ulDone = true; if (dlDone && ulDone) callback(); }); }
+
+    function startTest(type) {
+      if (isRunning) return; isRunning = true; currentTest = type; errorCount = 0; currentAborts = []; resetTestData();
+      statusDot.classList.add('active');[btnUpload, btnDownload, btnBoth].forEach(btn => btn.classList.remove('active'));
+      const tests = {
+        download: () => { btnDownload.classList.add('active'); statusText.textContent = i18n[currentLang].downloadTesting + ' (预热中...)'; setTimeout(() => { if (isRunning) statusText.textContent = i18n[currentLang].downloadTesting; }, TEST_CONFIG.warmup); runSingleTest('download', () => { statusText.textContent = i18n[currentLang].downloadComplete; stopTest(); }); },
+        upload: () => { btnUpload.classList.add('active'); statusText.textContent = i18n[currentLang].uploadTesting + ' (预热中...)'; setTimeout(() => { if (isRunning) statusText.textContent = i18n[currentLang].uploadTesting; }, TEST_CONFIG.warmup); runSingleTest('upload', () => { statusText.textContent = i18n[currentLang].uploadComplete; stopTest(); }); },
+        both: () => { btnBoth.classList.add('active'); statusText.textContent = i18n[currentLang].dualTesting + ' (预热中...)'; setTimeout(() => { if (isRunning) statusText.textContent = i18n[currentLang].dualTesting; }, TEST_CONFIG.warmup); runDualTest(() => { statusText.textContent = i18n[currentLang].allComplete; stopTest(); }); }
+      };
+      tests[type]();
+    }
+
+    function stopTest() {
+      isRunning = false; currentTest = null;
+      currentAborts.forEach(fn => fn()); // 触发所有注册的中止函数
+      currentAborts = [];
+      statusDot.classList.remove('active');[btnUpload, btnDownload, btnBoth].forEach(btn => btn.classList.remove('active'));
+    }
+
+    function switchLang(lang) { currentLang = lang; langBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang)); document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.dataset.i18n; if (i18n[lang][key]) el.textContent = i18n[lang][key]; }); if (!isRunning) statusText.textContent = i18n[lang].ready; }
+
+    btnDownload.addEventListener('click', () => startTest('download')); btnUpload.addEventListener('click', () => startTest('upload')); btnBoth.addEventListener('click', () => startTest('both'));
+    langBtns.forEach(btn => btn.addEventListener('click', () => switchLang(btn.dataset.lang)));
+    let resizeTimer; window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { initCanvases(); updateDisplay(); }, 200); });
+
+    initCanvases(); updateDisplay();
+  </script>
+</body>
+
+</html>
