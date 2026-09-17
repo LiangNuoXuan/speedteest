@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SpeedTest Pro</title>
   <style>
-    /* --- 核心变量 --- */
     :root {
       --bg: #0c1220;
       --bg-card: rgba(15, 23, 42, 0.85);
@@ -80,7 +79,6 @@
       background: var(--upload);
     }
 
-    /* --- 头部布局 --- */
     header {
       display: flex;
       justify-content: space-between;
@@ -210,7 +208,6 @@
       color: var(--fg);
     }
 
-    /* --- 主内容区域 --- */
     main {
       flex: 1;
       display: flex;
@@ -227,7 +224,6 @@
       }
     }
 
-    /* --- 仪表盘区域 --- */
     .gauges-section {
       display: flex;
       flex-direction: row;
@@ -380,7 +376,6 @@
       stroke: var(--upload);
     }
 
-    /* --- 图表区域 --- */
     .charts-section {
       display: grid;
       grid-template-columns: 1fr;
@@ -440,7 +435,6 @@
       }
     }
 
-    /* --- 按钮区域 --- */
     .buttons-section {
       display: flex;
       flex-wrap: nowrap;
@@ -549,7 +543,6 @@
       }
     }
 
-    /* --- 状态指示 --- */
     .status-indicator {
       width: 8px;
       height: 8px;
@@ -745,281 +738,651 @@
   </div>
 
   <script>
-    // 多语言配置
-    const i18n = {
-      zh: { traffic: '流量消耗', download: '下载', upload: '上传', uploadBtn: '上传测试', downloadBtn: '下载测试', bothBtn: '双向测试', downloadChart: '下载速度曲线', uploadChart: '上传速度曲线', ready: '准备就绪，点击按钮开始测试', uploadTesting: '正在测试上传速度...', downloadTesting: '正在测试下载速度...', dualTesting: '正在同时测试上传和下载...', uploadComplete: '上传测试完成', downloadComplete: '下载测试完成', allComplete: '测试全部完成', serverError: '服务器连接失败，请检查服务器是否正常运行', networkError: '网络连接异常，测试已中止' },
-      en: { traffic: 'Data Usage', download: 'Download', upload: 'Upload', uploadBtn: 'Upload Test', downloadBtn: 'Download Test', bothBtn: 'Dual Test', downloadChart: 'Download Speed Curve', uploadChart: 'Upload Speed Curve', ready: 'Ready, click button to start', uploadTesting: 'Testing upload speed...', downloadTesting: 'Testing download speed...', dualTesting: 'Testing upload and download simultaneously...', uploadComplete: 'Upload test completed', downloadComplete: 'Download test completed', allComplete: 'All tests completed', serverError: 'Server connection failed, please check if server is running properly', networkError: 'Network connection error, test aborted' }
+    console.log('%cSpeedTest FINAL (XHR only, all browsers) - ' + new Date().toLocaleTimeString(),
+      'color:#00d4aa;font-weight:bold;font-size:14px');
+
+    // ==================== 多语言 ====================
+    var i18n = {
+      zh: {
+        traffic: '流量消耗', download: '下载', upload: '上传',
+        uploadBtn: '上传测试', downloadBtn: '下载测试', bothBtn: '双向测试',
+        downloadChart: '下载速度曲线', uploadChart: '上传速度曲线',
+        ready: '准备就绪，点击按钮开始测试',
+        uploadTesting: '正在测试上传速度...', downloadTesting: '正在测试下载速度...',
+        dualTesting: '正在同时测试上传和下载...',
+        uploadComplete: '上传测试完成', downloadComplete: '下载测试完成',
+        allComplete: '测试全部完成',
+        serverError: '服务器连接失败，请检查服务器是否正常运行',
+        networkError: '网络连接异常，测试已中止'
+      },
+      en: {
+        traffic: 'Data Usage', download: 'Download', upload: 'Upload',
+        uploadBtn: 'Upload Test', downloadBtn: 'Download Test', bothBtn: 'Dual Test',
+        downloadChart: 'Download Speed Curve', uploadChart: 'Upload Speed Curve',
+        ready: 'Ready, click button to start',
+        uploadTesting: 'Testing upload speed...', downloadTesting: 'Testing download speed...',
+        dualTesting: 'Testing upload and download simultaneously...',
+        uploadComplete: 'Upload test completed', downloadComplete: 'Download test completed',
+        allComplete: 'All tests completed',
+        serverError: 'Server connection failed, please check if server is running properly',
+        networkError: 'Network connection error, test aborted'
+      }
     };
 
-    // 状态变量
-    let currentLang = 'zh'; let isRunning = false; let currentTest = null; let totalTraffic = 0; let errorCount = 0; const maxErrors = 3;
-    let smoothedDownloadSpeed = 0; let smoothedUploadSpeed = 0; let downloadSpeedHistory = []; let uploadSpeedHistory = [];
-    let downloadData = []; let uploadData = []; const maxChartPoints = 300;
-    let downloadSpeed = 0; let uploadSpeed = 0;
+    // ==================== 全局状态 ====================
+    var currentLang = 'zh';
+    var isRunning = false;
+    var currentTest = null;
+    var totalTraffic = 0;
+    var maxErrors = 3;
+    var downloadSpeedHistory = [];
+    var uploadSpeedHistory = [];
+    var downloadData = [];
+    var uploadData = [];
+    var maxChartPoints = 300;
+    var downloadSpeed = 0;
+    var uploadSpeed = 0;
+    var currentAborts = [];
 
-    // 全局中止函数收集器 (用于双向测速隔离管理)
-    let currentAborts = [];
+    // ==================== DOM ====================
+    var downloadCanvas = document.getElementById('downloadGauge');
+    var uploadCanvas = document.getElementById('uploadGauge');
+    var downloadChartCanvas = document.getElementById('downloadChart');
+    var uploadChartCanvas = document.getElementById('uploadChart');
+    var downloadValue = document.getElementById('downloadValue');
+    var uploadValue = document.getElementById('uploadValue');
+    var downloadAvg = document.getElementById('downloadAvg');
+    var uploadAvg = document.getElementById('uploadAvg');
+    var totalTrafficEl = document.getElementById('totalTraffic');
+    var statusText = document.getElementById('statusText');
+    var statusDot = document.getElementById('statusDot');
+    var btnUpload = document.getElementById('btnUpload');
+    var btnDownload = document.getElementById('btnDownload');
+    var btnBoth = document.getElementById('btnBoth');
+    var langBtns = document.querySelectorAll('.lang-btn');
 
-    // DOM 元素
-    const downloadCanvas = document.getElementById('downloadGauge'); const uploadCanvas = document.getElementById('uploadGauge');
-    const downloadChartCanvas = document.getElementById('downloadChart'); const uploadChartCanvas = document.getElementById('uploadChart');
-    const downloadValue = document.getElementById('downloadValue'); const uploadValue = document.getElementById('uploadValue');
-    const downloadAvg = document.getElementById('downloadAvg'); const uploadAvg = document.getElementById('uploadAvg');
-    const totalTrafficEl = document.getElementById('totalTraffic'); const statusText = document.getElementById('statusText');
-    const statusDot = document.getElementById('statusDot'); const btnUpload = document.getElementById('btnUpload');
-    const btnDownload = document.getElementById('btnDownload'); const btnBoth = document.getElementById('btnBoth'); const langBtns = document.querySelectorAll('.lang-btn');
+    var downloadGaugeCtx = downloadCanvas.getContext('2d');
+    var uploadGaugeCtx = uploadCanvas.getContext('2d');
+    var downloadChartCtx = downloadChartCanvas.getContext('2d');
+    var uploadChartCtx = uploadChartCanvas.getContext('2d');
 
-    const downloadGaugeCtx = downloadCanvas.getContext('2d'); const uploadGaugeCtx = uploadCanvas.getContext('2d');
-    const downloadChartCtx = downloadChartCanvas.getContext('2d'); const uploadChartCtx = uploadChartCanvas.getContext('2d');
+    // ==================== 服务器 & 配置 ====================
+    var SPEEDTEST_SERVERS = [
+      {name: '本机服务器', server: './', dlURL: 'garbage.php', ulURL: 'empty.php', pingURL: 'empty.php'}
+    ];
 
-    const SPEEDTEST_SERVERS = [{ name: '本机服务器', server: './', dlURL: 'garbage.php', ulURL: 'empty.php', pingURL: 'empty.php' }];
-    const TEST_CONFIG = { threads: 5, duration: 10000, warmup: 2000, adjust: 1.05, sampleInterval: 100, smoothWindow: 5 };
+    var TEST_CONFIG = {
+      threads: 6,             // 单测并发数
+      dualThreads: 3,         // 双测时每个方向的并发数（共 6，避免连接排队）
+      warmup: 2000,           // 预热时长（ms，从首个字节到达开始计）
+      duration: 8000,         // 测量窗口时长（ms）
+      adjust: 1.00,           // 应用层真实吞吐；线路速率口径可改 1.02
+      sampleInterval: 100,    // 采样间隔（ms）
+      smoothWindow: 8,        // 平滑窗口（800ms，跨过上传块间隙）
+      minWarmupSamples: 5,
+      uploadBlockMB: 32       // 上传单块大小（MB）；越大间隙越少，需要 post_max_size ≥ 32M
+    };
 
+    // ==================== Canvas ====================
     function initCanvases() {
-      const dpr = window.devicePixelRatio || 1;
-      [downloadCanvas, uploadCanvas, downloadChartCanvas, uploadChartCanvas].forEach(canvas => {
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = Math.max(1, rect.width * dpr); canvas.height = Math.max(1, rect.height * dpr);
+      var dpr = window.devicePixelRatio || 1;
+      [downloadCanvas, uploadCanvas, downloadChartCanvas, uploadChartCanvas].forEach(function (canvas) {
+        var rect = canvas.getBoundingClientRect();
+        canvas.width = Math.max(1, rect.width * dpr);
+        canvas.height = Math.max(1, rect.height * dpr);
       });
-      [downloadGaugeCtx, uploadGaugeCtx, downloadChartCtx, uploadChartCtx].forEach(ctx => {
-        ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.scale(dpr, dpr);
+      [downloadGaugeCtx, uploadGaugeCtx, downloadChartCtx, uploadChartCtx].forEach(function (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
       });
     }
 
     function drawGauge(ctx, canvas, value, maxValue, color, glowColor) {
-      const rect = canvas.getBoundingClientRect(); const w = rect.width, h = rect.height;
-      const cx = w / 2, cy = h / 2; const radius = Math.max(10, Math.min(cx, cy) - 15); const lineWidth = Math.max(4, radius * 0.12);
+      var rect = canvas.getBoundingClientRect();
+      var w = rect.width, h = rect.height;
+      var cx = w / 2, cy = h / 2;
+      var radius = Math.max(10, Math.min(cx, cy) - 15);
+      var lineWidth = Math.max(4, radius * 0.12);
       ctx.clearRect(0, 0, w, h);
-      ctx.beginPath(); ctx.arc(cx, cy, radius, Math.PI * 0.75, Math.PI * 2.25, false); ctx.strokeStyle = 'rgba(100, 116, 139, 0.15)'; ctx.lineWidth = lineWidth; ctx.lineCap = 'round'; ctx.stroke();
-      const progress = Math.min(1, Math.max(0, value / maxValue));
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, Math.PI * 0.75, Math.PI * 2.25, false);
+      ctx.strokeStyle = 'rgba(100, 116, 139, 0.15)';
+      ctx.lineWidth = lineWidth; ctx.lineCap = 'round'; ctx.stroke();
+
+      var progress = Math.min(1, Math.max(0, value / maxValue));
       if (progress > 0.001) {
-        const endAngle = Math.PI * 0.75 + progress * Math.PI * 1.5;
-        ctx.beginPath(); ctx.arc(cx, cy, radius, Math.PI * 0.75, endAngle, false); ctx.strokeStyle = glowColor; ctx.lineWidth = lineWidth + 6; ctx.lineCap = 'round'; ctx.stroke();
-        ctx.beginPath(); ctx.arc(cx, cy, radius, Math.PI * 0.75, endAngle, false); ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.lineCap = 'round'; ctx.stroke();
+        var endAngle = Math.PI * 0.75 + progress * Math.PI * 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, Math.PI * 0.75, endAngle, false);
+        ctx.strokeStyle = glowColor; ctx.lineWidth = lineWidth + 6;
+        ctx.lineCap = 'round'; ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, Math.PI * 0.75, endAngle, false);
+        ctx.strokeStyle = color; ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round'; ctx.stroke();
       }
-      for (let i = 0; i <= 10; i++) {
-        const angle = Math.PI * 0.75 + (i / 10) * Math.PI * 1.5; const inner = radius - lineWidth / 2 - 6; const outer = radius - lineWidth / 2 - (i % 2 === 0 ? 14 : 10);
-        ctx.beginPath(); ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner); ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
-        ctx.strokeStyle = i % 2 === 0 ? 'rgba(232, 237, 245, 0.25)' : 'rgba(232, 237, 245, 0.1)'; ctx.lineWidth = i % 2 === 0 ? 1.5 : 1; ctx.stroke();
+      for (var i = 0; i <= 10; i++) {
+        var angle = Math.PI * 0.75 + (i / 10) * Math.PI * 1.5;
+        var inner = radius - lineWidth / 2 - 6;
+        var outer = radius - lineWidth / 2 - (i % 2 === 0 ? 14 : 10);
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
+        ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
+        ctx.strokeStyle = i % 2 === 0 ? 'rgba(232, 237, 245, 0.25)' : 'rgba(232, 237, 245, 0.1)';
+        ctx.lineWidth = i % 2 === 0 ? 1.5 : 1;
+        ctx.stroke();
       }
     }
 
     function drawChart(ctx, canvas, data, color, glowColor) {
-      const rect = canvas.getBoundingClientRect(); const w = rect.width, h = rect.height; const padding = { top: 10, right: 10, bottom: 20, left: 10 };
-      const chartW = w - padding.left - padding.right; const chartH = h - padding.top - padding.bottom;
-      ctx.clearRect(0, 0, w, h); ctx.strokeStyle = 'rgba(100, 116, 139, 0.1)'; ctx.lineWidth = 1;
-      for (let i = 0; i <= 4; i++) { const y = padding.top + (chartH / 4) * i; ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(w - padding.right, y); ctx.stroke(); }
+      var rect = canvas.getBoundingClientRect();
+      var w = rect.width, h = rect.height;
+      var padding = {top: 10, right: 10, bottom: 20, left: 10};
+      var chartW = w - padding.left - padding.right;
+      var chartH = h - padding.top - padding.bottom;
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(100, 116, 139, 0.1)';
+      ctx.lineWidth = 1;
+      for (var gi = 0; gi <= 4; gi++) {
+        var gy = padding.top + (chartH / 4) * gi;
+        ctx.beginPath(); ctx.moveTo(padding.left, gy);
+        ctx.lineTo(w - padding.right, gy); ctx.stroke();
+      }
       if (data.length < 2) return;
-      const maxVal = Math.max(...data, 100); const displayData = data.length > maxChartPoints ? data.slice(-maxChartPoints) : data;
-      const xStep = chartW / (displayData.length - 1);
-      const points = displayData.map((v, i) => ({ x: padding.left + i * xStep, y: padding.top + chartH - (v / maxVal) * chartH }));
-      const gradient = ctx.createLinearGradient(0, padding.top, 0, h - padding.bottom); gradient.addColorStop(0, glowColor); gradient.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.moveTo(points[0].x, h - padding.bottom); points.forEach(p => ctx.lineTo(p.x, p.y)); ctx.lineTo(points[points.length - 1].x, h - padding.bottom); ctx.closePath(); ctx.fillStyle = gradient; ctx.fill();
-      ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y); for (let i = 1; i < points.length; i++) { ctx.lineTo(points[i].x, points[i].y); } ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
-      if (points.length > 0) { const last = points[points.length - 1]; ctx.beginPath(); ctx.arc(last.x, last.y, 4, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); ctx.beginPath(); ctx.arc(last.x, last.y, 8, 0, Math.PI * 2); ctx.fillStyle = glowColor; ctx.fill(); }
+      var maxVal = Math.max.apply(null, data.concat([100]));
+      var displayData = data.length > maxChartPoints ? data.slice(-maxChartPoints) : data;
+      var xStep = chartW / (displayData.length - 1);
+      var points = displayData.map(function (v, i) {
+        return {
+          x: padding.left + i * xStep,
+          y: padding.top + chartH - (v / maxVal) * chartH
+        };
+      });
+      var gradient = ctx.createLinearGradient(0, padding.top, 0, h - padding.bottom);
+      gradient.addColorStop(0, glowColor);
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, h - padding.bottom);
+      points.forEach(function (p) {ctx.lineTo(p.x, p.y);});
+      ctx.lineTo(points[points.length - 1].x, h - padding.bottom);
+      ctx.closePath(); ctx.fillStyle = gradient; ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (var pi = 1; pi < points.length; pi++) ctx.lineTo(points[pi].x, points[pi].y);
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+
+      var last = points[points.length - 1];
+      ctx.beginPath(); ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = color; ctx.fill();
+      ctx.beginPath(); ctx.arc(last.x, last.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = glowColor; ctx.fill();
     }
 
     function updateDisplay() {
-      downloadValue.textContent = Math.round(downloadSpeed); uploadValue.textContent = Math.round(uploadSpeed); totalTrafficEl.textContent = totalTraffic.toFixed(2);
-      drawGauge(downloadGaugeCtx, downloadCanvas, downloadSpeed, 1000, '#00d4aa', 'rgba(0, 212, 170, 0.3)'); drawGauge(uploadGaugeCtx, uploadCanvas, uploadSpeed, 500, '#ff6b35', 'rgba(255, 107, 53, 0.3)');
-      drawChart(downloadChartCtx, downloadChartCanvas, downloadData, '#00d4aa', 'rgba(0, 212, 170, 0.2)'); drawChart(uploadChartCtx, uploadChartCanvas, uploadData, '#ff6b35', 'rgba(255, 107, 53, 0.2)');
-      if (downloadData.length > 0) { const validData = downloadData.length > 10 ? downloadData.slice(Math.floor(downloadData.length * 0.2)) : downloadData; const avgDown = validData.reduce((a, b) => a + b, 0) / validData.length; downloadAvg.textContent = `Avg: ${Math.round(avgDown)} Mbps`; } else { downloadAvg.textContent = 'Avg: 0 Mbps'; }
-      if (uploadData.length > 0) { const validData = uploadData.length > 10 ? uploadData.slice(Math.floor(uploadData.length * 0.2)) : uploadData; const avgUp = validData.reduce((a, b) => a + b, 0) / validData.length; uploadAvg.textContent = `Avg: ${Math.round(avgUp)} Mbps`; } else { uploadAvg.textContent = 'Avg: 0 Mbps'; }
+      downloadValue.textContent = Math.round(downloadSpeed);
+      uploadValue.textContent = Math.round(uploadSpeed);
+      totalTrafficEl.textContent = totalTraffic.toFixed(2);
+
+      drawGauge(downloadGaugeCtx, downloadCanvas, downloadSpeed, 1000, '#00d4aa', 'rgba(0, 212, 170, 0.3)');
+      drawGauge(uploadGaugeCtx, uploadCanvas, uploadSpeed, 500, '#ff6b35', 'rgba(255, 107, 53, 0.3)');
+      drawChart(downloadChartCtx, downloadChartCanvas, downloadData, '#00d4aa', 'rgba(0, 212, 170, 0.2)');
+      drawChart(uploadChartCtx, uploadChartCanvas, uploadData, '#ff6b35', 'rgba(255, 107, 53, 0.2)');
+
+      if (downloadData.length > 0) {
+        var dValid = downloadData.length > 10 ? downloadData.slice(Math.floor(downloadData.length * 0.2)) : downloadData;
+        var avgDown = dValid.reduce(function (a, b) {return a + b;}, 0) / dValid.length;
+        downloadAvg.textContent = 'Avg: ' + Math.round(avgDown) + ' Mbps';
+      } else {
+        downloadAvg.textContent = 'Avg: 0 Mbps';
+      }
+      if (uploadData.length > 0) {
+        var uValid = uploadData.length > 10 ? uploadData.slice(Math.floor(uploadData.length * 0.2)) : uploadData;
+        var avgUp = uValid.reduce(function (a, b) {return a + b;}, 0) / uValid.length;
+        uploadAvg.textContent = 'Avg: ' + Math.round(avgUp) + ' Mbps';
+      } else {
+        uploadAvg.textContent = 'Avg: 0 Mbps';
+      }
     }
 
-    function resetTestData() { downloadSpeed = 0; uploadSpeed = 0; smoothedDownloadSpeed = 0; smoothedUploadSpeed = 0; downloadSpeedHistory = []; uploadSpeedHistory = []; downloadData = []; uploadData = []; updateDisplay(); }
-    function smoothSpeed(type, newSpeed) { const history = type === 'download' ? downloadSpeedHistory : uploadSpeedHistory; history.push(newSpeed); if (history.length > TEST_CONFIG.smoothWindow) history.shift(); const smoothed = history.length > 0 ? history.reduce((a, b) => a + b, 0) / history.length : newSpeed; if (type === 'download') { smoothedDownloadSpeed = smoothed; downloadSpeed = smoothed; } else { smoothedUploadSpeed = smoothed; uploadSpeed = smoothed; } return smoothed; }
-    function addChartData(type, value) { if (type === 'download') { downloadData.push(value); if (downloadData.length > maxChartPoints) downloadData.shift(); } else { uploadData.push(value); if (uploadData.length > maxChartPoints) uploadData.shift(); } }
-
-    function calculateTrimmedMean(arr) {
-      if (arr.length === 0) return 0;
-      arr.sort((a, b) => a - b);
-      const trimCount = Math.floor(arr.length * 0.1);
-      const validArr = arr.slice(trimCount, arr.length - trimCount);
-      if (validArr.length === 0) return arr[Math.floor(arr.length / 2)];
-      return validArr.reduce((a, b) => a + b, 0) / validArr.length;
+    // ==================== 数据工具 ====================
+    function resetTestData() {
+      downloadSpeed = 0; uploadSpeed = 0;
+      downloadSpeedHistory = []; uploadSpeedHistory = [];
+      downloadData = []; uploadData = [];
+      updateDisplay();
     }
 
-    function runDownloadTest(server, onProgress, onComplete) {
-      const url = server.server + server.dlURL;
-      let totalLoaded = 0, prevLoaded = 0, startTime = performance.now(), prevTime = startTime;
-      const samples = []; let dynamicChunkSize = 8;
+    function smoothSpeed(type, newSpeed) {
+      var history = type === 'download' ? downloadSpeedHistory : uploadSpeedHistory;
+      history.push(newSpeed);
+      if (history.length > TEST_CONFIG.smoothWindow) history.shift();
+      var sum = 0;
+      for (var i = 0; i < history.length; i++) sum += history[i];
+      var smoothed = sum / history.length;
+      if (type === 'download') downloadSpeed = smoothed;
+      else uploadSpeed = smoothed;
+      return smoothed;
+    }
 
-      // 隔离局部的状态和请求管理
-      let localTesters = [];
-      let localTimers = [];
-      let isAborted = false;
+    function addChartData(type, value) {
+      if (type === 'download') {
+        downloadData.push(value);
+        if (downloadData.length > maxChartPoints) downloadData.shift();
+      } else {
+        uploadData.push(value);
+        if (uploadData.length > maxChartPoints) uploadData.shift();
+      }
+    }
+
+    // 双侧 15% 修剪 + 中位数（对非对称分布鲁棒）
+    function calculateStableSpeed(arr) {
+      if (!arr.length) return 0;
+      if (arr.length < 5) {
+        var s = 0;
+        for (var i = 0; i < arr.length; i++) s += arr[i];
+        return s / arr.length;
+      }
+      var sorted = arr.slice().sort(function (a, b) {return a - b;});
+      var trim = Math.floor(sorted.length * 0.15);
+      var core = sorted.slice(trim, sorted.length - trim);
+      if (!core.length) return sorted[Math.floor(sorted.length / 2)];
+      var mid = Math.floor(core.length / 2);
+      return core.length % 2 ? core[mid] : (core[mid - 1] + core[mid]) / 2;
+    }
+
+    // ==================== 上传数据块（懒生成，全局共享） ====================
+    var _uploadBlobCache = null;
+    function getUploadBlob() {
+      if (_uploadBlobCache) return _uploadBlobCache;
+      var blockBytes = TEST_CONFIG.uploadBlockMB * 1024 * 1024;
+      // crypto.getRandomValues 单次上限 65536 字节；用 64KB 种子拼成 32MB
+      // 拼装用的是 Blob 数组，浏览器只保存引用，不会真占 32MB × N
+      var seed = new Uint8Array(65536);
+      if (window.crypto && crypto.getRandomValues) {
+        crypto.getRandomValues(seed);
+      } else {
+        for (var si = 0; si < seed.length; si++) seed[si] = (Math.random() * 256) | 0;
+      }
+      var count = blockBytes / 65536;
+      var parts = [];
+      for (var pi = 0; pi < count; pi++) parts.push(seed);
+      _uploadBlobCache = new Blob(parts, {type: 'application/octet-stream'});
+      return _uploadBlobCache;
+    }
+
+    // ==================== 通用错误处理 ====================
+    function handleRequestError(xhrRef, errIdx, localTesters, localTimeouts, createFn, state) {
+      if (state.isAborted) return;
+      state.localErrorCount++;
+      if (state.localErrorCount >= maxErrors) {
+        if (!state.isAborted) {
+          statusText.textContent = i18n[currentLang].serverError;
+          stopTest();
+        }
+        return;
+      }
+      var tid = setTimeout(function () {
+        if (state.isAborted) return;
+        var i = localTesters.indexOf(xhrRef);
+        if (i !== -1) localTesters[i] = createFn(errIdx);
+      }, 500);
+      localTimeouts.push(tid);
+    }
+
+    // ==================== 下载测试 ====================
+    function runDownloadTest(server, threads, onProgress, onComplete) {
+      var url = server.server + server.dlURL;
+      var totalLoaded = 0;
+      var prevLoaded = 0;
+      var prevTime = null;
+      var measureStart = null;
+      var samples = [];
+      var dynamicChunkSize = 16;
+
+      var localTesters = [];
+      var localTimers = [];
+      var localTimeouts = [];
+      var state = {isAborted: false, localErrorCount: 0};
 
       function forceAbortLocal() {
-        isAborted = true;
-        localTimers.forEach(timer => clearInterval(timer));
+        state.isAborted = true;
+        localTimers.forEach(function (t) {clearTimeout(t);});
         localTimers = [];
-        localTesters.forEach(t => {
+        localTimeouts.forEach(function (t) {clearTimeout(t);});
+        localTimeouts = [];
+        localTesters.forEach(function (t) {
           if (t) {
-            t.onload = null; t.onerror = null; t.onprogress = null;
+            t.onload = t.onerror = t.onprogress = null;
             if (t.upload) t.upload.onprogress = null;
             if (t.readyState !== 4) t.abort();
           }
         });
         localTesters = [];
       }
-      currentAborts.push(forceAbortLocal); // 注册到全局以便统一强杀
+      currentAborts.push(forceAbortLocal);
 
       function createDlThread(idx) {
-        if (isAborted) return null;
-        const xhr = new XMLHttpRequest(); let lastLoaded = 0;
+        if (state.isAborted) return null;
+        var xhr = new XMLHttpRequest();
+        var lastLoaded = 0;
         localTesters.push(xhr);
-        xhr.onprogress = function (e) { const newLoaded = e.loaded - lastLoaded; totalLoaded += newLoaded; totalTraffic += newLoaded / 1048576; lastLoaded = e.loaded; };
+
+        xhr.onprogress = function (e) {
+          var newLoaded = e.loaded - lastLoaded;
+          if (newLoaded <= 0) return;
+          totalLoaded += newLoaded;
+          totalTraffic += newLoaded / 1048576;
+          lastLoaded = e.loaded;
+          if (measureStart === null) {
+            measureStart = performance.now();
+            prevTime = measureStart;
+            prevLoaded = totalLoaded;
+          }
+        };
         xhr.onload = function () {
-          if (isAborted) return;
+          if (state.isAborted) return;
           if (xhr.status === 200) {
             lastLoaded = 0;
             xhr.open('GET', url + '?cors=true&ckSize=' + dynamicChunkSize + '&n=' + Math.random(), true);
             xhr.responseType = 'arraybuffer';
             xhr.send();
-          } else { handleRequestError(xhr, idx); }
+          } else {
+            handleRequestError(xhr, idx, localTesters, localTimeouts, createDlThread, state);
+          }
         };
-        xhr.onerror = function () { handleRequestError(xhr, idx); };
-        function handleRequestError(xhrRef, errIdx) {
-          if (isAborted) return;
-          errorCount++;
-          if (errorCount >= maxErrors) { statusText.textContent = i18n[currentLang].serverError; stopTest(); return; }
-          setTimeout(() => {
-            if (isAborted) return;
-            const i = localTesters.indexOf(xhrRef);
-            if (i !== -1) localTesters[i] = createDlThread(errIdx);
-          }, 500);
-        }
+        xhr.onerror = function () {
+          handleRequestError(xhr, idx, localTesters, localTimeouts, createDlThread, state);
+        };
+
         xhr.open('GET', url + '?cors=true&ckSize=' + dynamicChunkSize + '&n=' + Math.random(), true);
-        xhr.responseType = 'arraybuffer'; xhr.send();
+        xhr.responseType = 'arraybuffer';
+        xhr.send();
         return xhr;
       }
 
-      for (let i = 0; i < TEST_CONFIG.threads; i++) { createDlThread(i); }
+      for (var di = 0; di < threads; di++) createDlThread(di);
 
-      const timer = setInterval(() => {
-        if (isAborted) { clearInterval(timer); return; }
-        const now = performance.now(); const elapsed = now - startTime; const bytesDiff = totalLoaded - prevLoaded; const timeDiff = now - prevTime;
-        if (timeDiff > 0) {
-          let instantSpeed = (bytesDiff / timeDiff) / 125 * TEST_CONFIG.adjust; const smoothedSpeed = smoothSpeed('download', instantSpeed);
-          if (elapsed >= TEST_CONFIG.warmup) { samples.push(instantSpeed); if (instantSpeed > 500) { dynamicChunkSize = 16; } else if (instantSpeed > 200) { dynamicChunkSize = 12; } else { dynamicChunkSize = 8; } }
-          onProgress(smoothedSpeed); addChartData('download', smoothedSpeed);
+      var nextTick = performance.now() + TEST_CONFIG.sampleInterval;
+
+      function sample() {
+        if (state.isAborted) return;
+        var now = performance.now();
+
+        if (measureStart === null) {
+          nextTick = now + TEST_CONFIG.sampleInterval;
+          localTimers.push(setTimeout(sample, TEST_CONFIG.sampleInterval));
+          return;
         }
-        prevLoaded = totalLoaded; prevTime = now;
-        if (elapsed >= TEST_CONFIG.duration) {
+
+        var elapsed = now - measureStart;
+        var timeDiff = now - prevTime;
+        var bytesDiff = totalLoaded - prevLoaded;
+
+        if (timeDiff > 0 && bytesDiff >= 0) {
+          var instantSpeed = (bytesDiff / timeDiff) / 125 * TEST_CONFIG.adjust;
+          var smoothedSpeed = smoothSpeed('download', instantSpeed);
+
+          if (elapsed >= TEST_CONFIG.warmup) {
+            samples.push(instantSpeed);
+            if (instantSpeed > 800) dynamicChunkSize = 32;
+            else if (instantSpeed > 400) dynamicChunkSize = 24;
+            else if (instantSpeed > 150) dynamicChunkSize = 16;
+            else if (instantSpeed > 50) dynamicChunkSize = 8;
+            else dynamicChunkSize = 4;
+          }
+
+          onProgress(smoothedSpeed);
+          addChartData('download', smoothedSpeed);
+        }
+
+        prevLoaded = totalLoaded;
+        prevTime = now;
+
+        if (elapsed >= TEST_CONFIG.warmup + TEST_CONFIG.duration &&
+          samples.length >= TEST_CONFIG.minWarmupSamples) {
           forceAbortLocal();
-          const finalSpeed = calculateTrimmedMean(samples); onComplete(finalSpeed);
+          onComplete(calculateStableSpeed(samples));
+          return;
         }
-      }, TEST_CONFIG.sampleInterval);
-      localTimers.push(timer);
+
+        nextTick += TEST_CONFIG.sampleInterval;
+        localTimers.push(setTimeout(sample, Math.max(0, nextTick - performance.now())));
+      }
+      localTimers.push(setTimeout(sample, TEST_CONFIG.sampleInterval));
     }
 
-    function runUploadTest(server, onProgress, onComplete) {
-      const url = server.server + server.ulURL;
-      const randomData = new Uint32Array(2097152);
-      for (let i = 0; i < randomData.length; i++) randomData[i] = Math.floor(Math.random() * 4294967295);
-      const blob = new Blob([randomData], { type: 'application/octet-stream' });
-      let totalUploaded = 0, prevUploaded = 0, startTime = performance.now(), prevTime = startTime;
-      const samples = [];
+    // ==================== 上传测试（纯 XHR + 大块） ====================
+    function runUploadTest(server, threads, onProgress, onComplete) {
+      var url = server.server + server.ulURL;
+      var blob = getUploadBlob();
 
-      // 隔离局部的状态和请求管理
-      let localTesters = [];
-      let localTimers = [];
-      let isAborted = false;
+      var totalUploaded = 0;
+      var prevUploaded = 0;
+      var prevTime = null;
+      var measureStart = null;
+      var samples = [];
+
+      var localTesters = [];
+      var localTimers = [];
+      var localTimeouts = [];
+      var state = {isAborted: false, localErrorCount: 0};
 
       function forceAbortLocal() {
-        isAborted = true;
-        localTimers.forEach(timer => clearInterval(timer));
+        state.isAborted = true;
+        localTimers.forEach(function (t) {clearTimeout(t);});
         localTimers = [];
-        localTesters.forEach(t => {
+        localTimeouts.forEach(function (t) {clearTimeout(t);});
+        localTimeouts = [];
+        localTesters.forEach(function (t) {
           if (t) {
-            t.onload = null; t.onerror = null; t.onprogress = null;
+            t.onload = t.onerror = t.onprogress = null;
             if (t.upload) t.upload.onprogress = null;
             if (t.readyState !== 4) t.abort();
           }
         });
         localTesters = [];
       }
-      currentAborts.push(forceAbortLocal); // 注册到全局以便统一强杀
+      currentAborts.push(forceAbortLocal);
 
-      function createUlThread(idx) {
-        if (isAborted) return null;
-        const xhr = new XMLHttpRequest(); let lastUploaded = 0;
+      function createUlThread() {
+        if (state.isAborted) return null;
+        var xhr = new XMLHttpRequest();
+        var lastUploaded = 0;
         localTesters.push(xhr);
-        xhr.upload.onprogress = function (e) { const newUploaded = e.loaded - lastUploaded; totalUploaded += newUploaded; totalTraffic += newUploaded / 1048576; lastUploaded = e.loaded; };
+
+        xhr.upload.onprogress = function (e) {
+          var newUploaded = e.loaded - lastUploaded;
+          if (newUploaded <= 0) return;
+          totalUploaded += newUploaded;
+          totalTraffic += newUploaded / 1048576;
+          lastUploaded = e.loaded;
+          if (measureStart === null) {
+            measureStart = performance.now();
+            prevTime = measureStart;
+            prevUploaded = totalUploaded;
+          }
+        };
         xhr.onload = function () {
-          if (isAborted) return;
+          if (state.isAborted) return;
           if (xhr.status === 200) {
             lastUploaded = 0;
             xhr.open('POST', url + '?cors=true&n=' + Math.random(), true);
             xhr.setRequestHeader('Content-Type', 'application/octet-stream');
             xhr.send(blob);
-          } else { handleRequestError(xhr, idx); }
+          } else {
+            handleRequestError(xhr, null, localTesters, localTimeouts, createUlThread, state);
+          }
         };
-        xhr.onerror = function () { handleRequestError(xhr, idx); };
-        function handleRequestError(xhrRef, errIdx) {
-          if (isAborted) return;
-          errorCount++;
-          if (errorCount >= maxErrors) { statusText.textContent = i18n[currentLang].serverError; stopTest(); return; }
-          setTimeout(() => {
-            if (isAborted) return;
-            const i = localTesters.indexOf(xhrRef);
-            if (i !== -1) localTesters[i] = createUlThread(errIdx);
-          }, 500);
-        }
+        xhr.onerror = function () {
+          handleRequestError(xhr, null, localTesters, localTimeouts, createUlThread, state);
+        };
+
         xhr.open('POST', url + '?cors=true&n=' + Math.random(), true);
         xhr.setRequestHeader('Content-Type', 'application/octet-stream');
         xhr.send(blob);
         return xhr;
       }
 
-      for (let i = 0; i < TEST_CONFIG.threads; i++) { createUlThread(i); }
+      // 抖动启动：每线程错开 60ms，避免所有线程同时进入块间隙
+      for (var ui = 0; ui < threads; ui++) {
+        (function (i) {
+          setTimeout(function () {if (!state.isAborted) createUlThread();}, i * 60);
+        })(ui);
+      }
 
-      const timer = setInterval(() => {
-        if (isAborted) { clearInterval(timer); return; }
-        const now = performance.now(); const elapsed = now - startTime; const bytesDiff = totalUploaded - prevUploaded; const timeDiff = now - prevTime;
-        if (timeDiff > 0) {
-          let instantSpeed = (bytesDiff / timeDiff) / 125 * TEST_CONFIG.adjust; const smoothedSpeed = smoothSpeed('upload', instantSpeed);
-          if (elapsed >= TEST_CONFIG.warmup) { samples.push(instantSpeed); }
-          onProgress(smoothedSpeed); addChartData('upload', smoothedSpeed);
+      var nextTick = performance.now() + TEST_CONFIG.sampleInterval;
+      function sample() {
+        if (state.isAborted) return;
+        var now = performance.now();
+        if (measureStart === null) {
+          nextTick = now + TEST_CONFIG.sampleInterval;
+          localTimers.push(setTimeout(sample, TEST_CONFIG.sampleInterval));
+          return;
         }
-        prevUploaded = totalUploaded; prevTime = now;
-        if (elapsed >= TEST_CONFIG.duration) {
+        var elapsed = now - measureStart;
+        var timeDiff = now - prevTime;
+        var bytesDiff = totalUploaded - prevUploaded;
+        if (timeDiff > 0 && bytesDiff >= 0) {
+          var instantSpeed = (bytesDiff / timeDiff) / 125 * TEST_CONFIG.adjust;
+          var smoothedSpeed = smoothSpeed('upload', instantSpeed);
+          if (elapsed >= TEST_CONFIG.warmup) samples.push(instantSpeed);
+          onProgress(smoothedSpeed);
+          addChartData('upload', smoothedSpeed);
+        }
+        prevUploaded = totalUploaded;
+        prevTime = now;
+        if (elapsed >= TEST_CONFIG.warmup + TEST_CONFIG.duration &&
+          samples.length >= TEST_CONFIG.minWarmupSamples) {
           forceAbortLocal();
-          const finalSpeed = calculateTrimmedMean(samples); onComplete(finalSpeed);
+          onComplete(calculateStableSpeed(samples));
+          return;
         }
-      }, TEST_CONFIG.sampleInterval);
-      localTimers.push(timer);
+        nextTick += TEST_CONFIG.sampleInterval;
+        localTimers.push(setTimeout(sample, Math.max(0, nextTick - performance.now())));
+      }
+      localTimers.push(setTimeout(sample, TEST_CONFIG.sampleInterval));
     }
 
-    function runSingleTest(type, callback) { const server = SPEEDTEST_SERVERS[0]; if (!server) { alert('未配置测速服务器'); return; } if (type === 'download') { runDownloadTest(server, speed => { downloadSpeed = speed; updateDisplay(); }, finalSpeed => { downloadSpeed = finalSpeed; updateDisplay(); callback(); }); } else if (type === 'upload') { runUploadTest(server, speed => { uploadSpeed = speed; updateDisplay(); }, finalSpeed => { uploadSpeed = finalSpeed; updateDisplay(); callback(); }); } }
-    function runDualTest(callback) { const server = SPEEDTEST_SERVERS[0]; if (!server) return; let dlDone = false, ulDone = false; runDownloadTest(server, speed => { downloadSpeed = speed; updateDisplay(); }, finalSpeed => { downloadSpeed = finalSpeed; dlDone = true; if (dlDone && ulDone) callback(); }); runUploadTest(server, speed => { uploadSpeed = speed; updateDisplay(); }, finalSpeed => { uploadSpeed = finalSpeed; ulDone = true; if (dlDone && ulDone) callback(); }); }
+    // ==================== 测试编排 ====================
+    function runSingleTest(type, callback) {
+      var server = SPEEDTEST_SERVERS[0];
+      if (!server) {alert('未配置测速服务器'); return;}
+      var t = TEST_CONFIG.threads;
+      if (type === 'download') {
+        runDownloadTest(server, t,
+          function (speed) {downloadSpeed = speed; updateDisplay();},
+          function (finalSpeed) {downloadSpeed = finalSpeed; updateDisplay(); callback();});
+      } else if (type === 'upload') {
+        runUploadTest(server, t,
+          function (speed) {uploadSpeed = speed; updateDisplay();},
+          function (finalSpeed) {uploadSpeed = finalSpeed; updateDisplay(); callback();});
+      }
+    }
+
+    function runDualTest(callback) {
+      var server = SPEEDTEST_SERVERS[0];
+      if (!server) return;
+      var t = TEST_CONFIG.dualThreads;
+      var dlDone = false, ulDone = false;
+      runDownloadTest(server, t,
+        function (speed) {downloadSpeed = speed; updateDisplay();},
+        function (finalSpeed) {
+          downloadSpeed = finalSpeed; updateDisplay();
+          dlDone = true;
+          if (dlDone && ulDone) callback();
+        });
+      runUploadTest(server, t,
+        function (speed) {uploadSpeed = speed; updateDisplay();},
+        function (finalSpeed) {
+          uploadSpeed = finalSpeed; updateDisplay();
+          ulDone = true;
+          if (dlDone && ulDone) callback();
+        });
+    }
 
     function startTest(type) {
-      if (isRunning) return; isRunning = true; currentTest = type; errorCount = 0; currentAborts = []; resetTestData();
-      statusDot.classList.add('active');[btnUpload, btnDownload, btnBoth].forEach(btn => btn.classList.remove('active'));
-      const tests = {
-        download: () => { btnDownload.classList.add('active'); statusText.textContent = i18n[currentLang].downloadTesting + ' (预热中...)'; setTimeout(() => { if (isRunning) statusText.textContent = i18n[currentLang].downloadTesting; }, TEST_CONFIG.warmup); runSingleTest('download', () => { statusText.textContent = i18n[currentLang].downloadComplete; stopTest(); }); },
-        upload: () => { btnUpload.classList.add('active'); statusText.textContent = i18n[currentLang].uploadTesting + ' (预热中...)'; setTimeout(() => { if (isRunning) statusText.textContent = i18n[currentLang].uploadTesting; }, TEST_CONFIG.warmup); runSingleTest('upload', () => { statusText.textContent = i18n[currentLang].uploadComplete; stopTest(); }); },
-        both: () => { btnBoth.classList.add('active'); statusText.textContent = i18n[currentLang].dualTesting + ' (预热中...)'; setTimeout(() => { if (isRunning) statusText.textContent = i18n[currentLang].dualTesting; }, TEST_CONFIG.warmup); runDualTest(() => { statusText.textContent = i18n[currentLang].allComplete; stopTest(); }); }
+      if (isRunning) return;
+      isRunning = true;
+      currentTest = type;
+      currentAborts = [];
+      resetTestData();
+
+      statusDot.classList.add('active');
+      [btnUpload, btnDownload, btnBoth].forEach(function (btn) {btn.classList.remove('active');});
+
+      var tests = {
+        download: function () {
+          btnDownload.classList.add('active');
+          statusText.textContent = i18n[currentLang].downloadTesting + ' (预热中...)';
+          setTimeout(function () {
+            if (isRunning) statusText.textContent = i18n[currentLang].downloadTesting;
+          }, TEST_CONFIG.warmup);
+          runSingleTest('download', function () {
+            statusText.textContent = i18n[currentLang].downloadComplete;
+            stopTest();
+          });
+        },
+        upload: function () {
+          btnUpload.classList.add('active');
+          statusText.textContent = i18n[currentLang].uploadTesting + ' (预热中...)';
+          setTimeout(function () {
+            if (isRunning) statusText.textContent = i18n[currentLang].uploadTesting;
+          }, TEST_CONFIG.warmup);
+          runSingleTest('upload', function () {
+            statusText.textContent = i18n[currentLang].uploadComplete;
+            stopTest();
+          });
+        },
+        both: function () {
+          btnBoth.classList.add('active');
+          statusText.textContent = i18n[currentLang].dualTesting + ' (预热中...)';
+          setTimeout(function () {
+            if (isRunning) statusText.textContent = i18n[currentLang].dualTesting;
+          }, TEST_CONFIG.warmup);
+          runDualTest(function () {
+            statusText.textContent = i18n[currentLang].allComplete;
+            stopTest();
+          });
+        }
       };
       tests[type]();
     }
 
     function stopTest() {
-      isRunning = false; currentTest = null;
-      currentAborts.forEach(fn => fn()); // 触发所有注册的中止函数
+      isRunning = false;
+      currentTest = null;
+      currentAborts.forEach(function (fn) {fn();});
       currentAborts = [];
-      statusDot.classList.remove('active');[btnUpload, btnDownload, btnBoth].forEach(btn => btn.classList.remove('active'));
+      statusDot.classList.remove('active');
+      [btnUpload, btnDownload, btnBoth].forEach(function (btn) {btn.classList.remove('active');});
     }
 
-    function switchLang(lang) { currentLang = lang; langBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang)); document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.dataset.i18n; if (i18n[lang][key]) el.textContent = i18n[lang][key]; }); if (!isRunning) statusText.textContent = i18n[lang].ready; }
+    function switchLang(lang) {
+      currentLang = lang;
+      langBtns.forEach(function (btn) {btn.classList.toggle('active', btn.dataset.lang === lang);});
+      document.querySelectorAll('[data-i18n]').forEach(function (el) {
+        var key = el.dataset.i18n;
+        if (i18n[lang][key]) el.textContent = i18n[lang][key];
+      });
+      if (!isRunning) statusText.textContent = i18n[lang].ready;
+    }
 
-    btnDownload.addEventListener('click', () => startTest('download')); btnUpload.addEventListener('click', () => startTest('upload')); btnBoth.addEventListener('click', () => startTest('both'));
-    langBtns.forEach(btn => btn.addEventListener('click', () => switchLang(btn.dataset.lang)));
-    let resizeTimer; window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { initCanvases(); updateDisplay(); }, 200); });
+    // ==================== 事件绑定 ====================
+    btnDownload.addEventListener('click', function () {startTest('download');});
+    btnUpload.addEventListener('click', function () {startTest('upload');});
+    btnBoth.addEventListener('click', function () {startTest('both');});
+    langBtns.forEach(function (btn) {btn.addEventListener('click', function () {switchLang(btn.dataset.lang);});});
 
-    initCanvases(); updateDisplay();
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {initCanvases(); updateDisplay();}, 200);
+    });
+
+    initCanvases();
+    updateDisplay();
   </script>
 </body>
 

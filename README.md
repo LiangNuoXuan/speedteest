@@ -1,10 +1,13 @@
-# SpeedTest Pro 部署指南
+# SpeedTest Pro
 
 一个轻量级的网速测试工具，支持下载/上传/双向速度测试，提供实时可视化图表显示。
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## 📋 系统要求
 
 ### 服务器端
+
 - **PHP 7.0+** （推荐 PHP 7.4+）
 - **Web服务器**: Apache / Nginx / IIS
 - **PHP扩展**:
@@ -12,6 +15,7 @@
   - 无需其他特殊扩展
 
 ### 客户端
+
 - **浏览器**: Chrome 80+ / Firefox 75+ / Safari 13+ / Edge 80+
 - 支持 JavaScript 和 Canvas
 - 建议使用现代浏览器以获得最佳性能
@@ -21,6 +25,7 @@
 ### 方式一：直接部署到现有服务器
 
 #### 1. 下载文件
+
 将以下文件上传到你的Web服务器目录：
 
 ```
@@ -50,6 +55,7 @@ max_input_time = 120
 ```
 
 #### 3. 访问测试
+
 打开浏览器访问：`http://你的域名/speedteest/index.html`
 
 ---
@@ -157,11 +163,11 @@ const TEST_CONFIG = {
 
 根据预期带宽调整 PHP 参数：
 
-| 预期带宽 | upload_max_filesize | post_max_size | max_execution_time |
-|---------|---------------------|---------------|--------------------|
-| <100 Mbps | 10M | 10M | 60 |
-| 100-500 Mbps | 30M | 30M | 90 |
-| >500 Mbps | 50M+ | 50M+ | 120+ |
+| 预期带宽         | upload_max_filesize | post_max_size | max_execution_time |
+| ------------ | ------------------- | ------------- | ------------------ |
+| <100 Mbps    | 10M                 | 10M           | 60                 |
+| 100-500 Mbps | 30M                 | 30M           | 90                 |
+| >500 Mbps    | 50M+                | 50M+          | 120+               |
 
 ## 📊 性能优化建议
 
@@ -189,6 +195,7 @@ const TEST_CONFIG = {
 ### Q1: 测速结果显示 0 或不准确？
 
 **解决方案**:
+
 1. 检查 PHP 文件是否可执行
 2. 确认服务器禁用了输出压缩
 3. 检查浏览器 Console 是否有错误
@@ -203,6 +210,7 @@ curl http://localhost/speedteest/garbage.php?cors=true
 ### Q2: 上传测试失败？
 
 **解决方案**:
+
 1. 检查 `upload_max_filesize` 和 `post_max_size` 设置
 2. 确认 `empty.php` 文件存在且可访问
 3. 检查防火墙是否拦截 POST 请求
@@ -215,6 +223,7 @@ file_put_contents('debug.log', date('Y-m-d H:i:s') . " - Upload received\n");
 ### Q3: 测速过程中断？
 
 **解决方案**:
+
 1. 增加 `max_execution_time` 和 `max_input_time`
 2. 检查服务器超时设置
 3. 降低并发线程数（threads 参数）
@@ -223,6 +232,7 @@ file_put_contents('debug.log', date('Y-m-d H:i:s') . " - Upload received\n");
 ### Q4: 速度跳动很大？
 
 **解决方案**:
+
 - 这是正常现象，系统已使用平滑处理和中位数计算
 - 如果跳动异常，可能是网络不稳定或服务器资源不足
 - 可适当增加 `smoothWindow` 值
@@ -230,11 +240,13 @@ file_put_contents('debug.log', date('Y-m-d H:i:s') . " - Upload received\n");
 ### Q5: 如何自定义字体？
 
 项目使用系统字体栈，无需下载额外字体文件，具有以下优势：
+
 - ✅ 零依赖，无需网络连接
 - ✅ 加载速度快，使用本地系统字体
 - ✅ 跨平台兼容，各系统显示最佳字体
 
 **当前字体配置**：
+
 - 主字体：系统默认字体（Apple SF Pro / Segoe UI / Roboto 等）
 - 等宽字体：SF Mono / Courier New（用于数值显示）
 
@@ -359,6 +371,7 @@ logTest('download', $_SERVER['REMOTE_ADDR']);
 ---
 
 **部署成功标志**:
+
 - ✅ 页面正常加载，无报错
 - ✅ 点击测试按钮后速度曲线实时更新
 - ✅ 测试完成后显示合理速度数值
@@ -371,3 +384,19 @@ logTest('download', $_SERVER['REMOTE_ADDR']);
 ## 📄 许可证
 
 本项目采用 [Apache License 2.0](LICENSE) 许可证开源。
+
+```
+Copyright 2026
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
